@@ -1,0 +1,14 @@
+.env
+frontend-node/node_modules/
+frontend-node/npm-debug.log*
+backend-php/src/vendor/
+backend-php/src/.phpunit.result.cache
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
+.DS_Store
+Thumbs.db

@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crear Cuenta</title>
+    <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+    <div class="auth-container">
+        <h2>Crear Cuenta</h2>
+        
+        <% if (error) { %>
+            <div class="alert alert-error"><%= error %></div>
+        <% } %>
+        
+        <% if (success) { %>
+            <div class="alert alert-success"><%= success %></div>
+            <p class="auth-redirect"><a href="/login">Ir al Inicio de Sesión</a></p>
+        <% } else { %>
+            <form action="/register" method="POST">
+                <div class="form-group">
+                    <label for="username">Usuario:</label>
+                    <input type="text" id="username" name="username" required minlength="3">
+                </div>
+                
+                <div class="form-group">
+                    <label for="password">Contraseña:</label>
+                    <input type="password" id="password" name="password" required minlength="4">
+                </div>
+                
+                <div class="form-group">
+                    <label for="password_confirm">Confirmar Contraseña:</label>
+                    <input type="password" id="password_confirm" name="password_confirm" required>
+                </div>
+                
+                <button type="submit">Registrarse</button>
+            </form>
+            
+            <p class="auth-redirect">¿Ya tienes cuenta? <a href="/login">Inicia sesión aquí</a></p>
+        <% } %>
+    </div>
+</body>
+</html>

@@ -1,0 +1,40 @@
+version: '3.8'
+
+services:
+  # Frontend (Node.js Express + EJS)
+  frontend:
+    build:
+      context: ./frontend-node
+      dockerfile: Dockerfile
+    container_name: shop_frontend
+    ports:
+      - "80:80"
+    volumes:
+      - ./frontend-node:/usr/src/app
+      - /usr/src/app/node_modules
+    environment:
+      - PHP_API_URL=http://backend:8000/api
+      - PORT=80
+    networks:
+      - shop_network
+    depends_on:
+      - backend
+
+  # Backend (PHP + Extensión MongoDB)
+  backend:
+    build:
+      context: ./backend-php
+      dockerfile: Dockerfile
+    container_name: shop_backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend-php/src:/var/www/html
+    env_file:
+      - .env
+    networks:
+      - shop_network
+
+networks:
+  shop_network:
+    driver: bridge

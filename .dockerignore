@@ -1,0 +1,7 @@
+frontend-node/node_modules
+backend-php/src/vendor
+.git
+.gitignore
+.vscode
+.idea
+README.md
