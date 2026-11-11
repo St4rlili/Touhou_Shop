@@ -1,77 +1,83 @@
 <?php
 
-// Procesa el registro de nuevos compradores
-function registerUser() {
-    $input = json_decode(file_get_contents('php://input'), true);
-    $username = isset($input['username']) ? trim($input['username']) : '';
-    $password = isset($input['password']) ? trim($input['password']) : '';
+function readCredentials(): array {
+    $in = readJsonBody();
+    $username = is_string($in['username'] ?? null) ? trim($in['username']) : '';
+    $password = is_string($in['password'] ?? null) ? trim($in['password']) : '';
+    return [$username, $password];
+}
 
-    if (empty($username) || empty($password)) {
-        header('HTTP/1.1 400 Bad Request');
-        echo json_encode(['error' => 'El usuario y la contraseña son obligatorios.']);
-        return;
+// Registro de nuevos compradores
+function registerUser() {
+    [$username, $password] = readCredentials();
+
+    if ($username === '' || $password === '') {
+        jsonError(400, 'El usuario y la contraseña son obligatorios.');
+    }
+    if (mb_strlen($username) < 3 || mb_strlen($username) > 30) {
+        jsonError(400, 'El usuario debe tener entre 3 y 30 caracteres.');
+    }
+    if (strlen($password) < 6) {
+        jsonError(400, 'La contraseña debe tener al menos 6 caracteres.');
     }
 
     try {
-        $db = getDB();
-        $collection = $db->selectCollection('users');
+        $collection = getDB()->selectCollection('users');
 
-        // Busca si ya existe el usuario de forma nativa
-        $existingUser = $collection->findOne(['username' => $username]);
-        if ($existingUser) {
-            header('HTTP/1.1 400 Bad Request');
-            echo json_encode(['error' => 'El nombre de usuario ya está registrado.']);
-            return;
+        if ($collection->findOne(['username' => $username])) {
+            jsonError(400, 'El nombre de usuario ya está registrado.');
         }
 
-        // Crea el documento del nuevo usuario
-        $newUser = [
+        $collection->insertOne([
             'username' => $username,
-            'password' => $password,
+            'password' => password_hash($password, PASSWORD_DEFAULT),
             'role' => 'comprador',
             'createdAt' => new MongoDB\BSON\UTCDateTime()
-        ];
-
-        $collection->insertOne($newUser);
-        echo json_encode(['ok' => true, 'message' => 'Usuario registrado correctamente.']);
+        ]);
+        jsonResponse(['ok' => true, 'message' => 'Usuario registrado correctamente.']);
     } catch (Exception $e) {
-        header('HTTP/1.1 500 Internal Server Error');
-        echo json_encode(['error' => 'Error interno al registrar: ' . $e->getMessage()]);
+        error_log('register: ' . $e->getMessage());
+        jsonError(500, 'Error interno al registrar.');
     }
 }
 
-// Procesa el inicio de sesión
+// Inicio de sesión (Node gestiona la sesión con los datos devueltos)
 function loginUser() {
-    $input = json_decode(file_get_contents('php://input'), true);
-    $username = isset($input['username']) ? trim($input['username']) : '';
-    $password = isset($input['password']) ? trim($input['password']) : '';
+    [$username, $password] = readCredentials();
 
-    if (empty($username) || empty($password)) {
-        header('HTTP/1.1 400 Bad Request');
-        echo json_encode(['error' => 'El usuario y la contraseña son obligatorios.']);
-        return;
+    if ($username === '' || $password === '') {
+        jsonError(400, 'El usuario y la contraseña son obligatorios.');
     }
 
     try {
-        $db = getDB();
-        $collection = $db->selectCollection('users');
-
+        $collection = getDB()->selectCollection('users');
         $user = $collection->findOne(['username' => $username]);
+        $stored = (string)($user['password'] ?? '');
 
-        if (!$user || $user['password'] !== $password) {
-            header('HTTP/1.1 401 Unauthorized');
-            echo json_encode(['error' => 'Credenciales incorrectas.']);
-            return;
+        if (!$user) {
+            jsonError(401, 'Credenciales incorrectas.');
         }
 
-        // Devolvemos los datos del usuario para que Node gestione la sesión
-        echo json_encode([
-            'ok' => true,
-            'username' => $user['username'],
-            'role' => $user['role']
-        ]);
+        if (!empty(password_get_info($stored)['algo'])) {
+            $valid = password_verify($password, $stored);
+        } else {
+            // Hasheo
+            $valid = hash_equals($stored, $password);
+            if ($valid) {
+                $collection->updateOne(
+                    ['_id' => $user['_id']],
+                    ['$set' => ['password' => password_hash($password, PASSWORD_DEFAULT)]]
+                );
+            }
+        }
+
+        if (!$valid) {
+            jsonError(401, 'Credenciales incorrectas.');
+        }
+
+        jsonResponse(['ok' => true, 'username' => $user['username'], 'role' => $user['role']]);
     } catch (Exception $e) {
-        header('HTTP/1.1 500 Internal Server Error');
-        echo json_encode(['error' => 'Error interno en el login: ' . $e->getMessage()]);
+        error_log('login: ' . $e->getMessage());
+        jsonError(500, 'Error interno en el login.');
     }
 }

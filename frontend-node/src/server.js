@@ -7,7 +7,7 @@ const axios = require("axios");
 const app = express();
 const PORT = process.env.PORT || 80;
 const PHP_API_URL = process.env.PHP_API_URL || "http://backend:8000/api";
-const API_KEY = "claveapi"; // Debe coincidir con la de PHP
+const API_KEY = process.env.API_KEY || "claveapi"; // Debe coincidir con la de PHP
 
 app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "views"));
@@ -33,7 +33,7 @@ const apiPhp = axios.create({
 
 // Página de Inicio
 app.get("/", (req, res) => {
-  res.render("index", { user: req.session.user || null });
+  res.redirect(req.session.user ? "/shop" : "/login");
 });
 
 // Renderiza el formulario
@@ -53,8 +53,9 @@ app.post("/register", async (req, res) => {
   try {
     const response = await apiPhp.post("/auth/register", { username, password });
     if (response.data.ok) {
-      res.render("register", { error: null, success: "¡Cuenta creada! Ya puedes iniciar sesión." });
+      return res.render("register", { error: null, success: "¡Cuenta creada! Ya puedes iniciar sesión." });
     }
+    res.render("register", { error: "No se pudo crear la cuenta", success: null });
   } catch (error) {
     const msg = error.response?.data?.error || "Error de comunicación con el backend";
     res.render("register", { error: msg, success: null });
@@ -86,6 +87,7 @@ app.post("/login", async (req, res) => {
       }
       return res.redirect("/shop");
     }
+    res.render("login", { error: "Credenciales incorrectas" });
   } catch (error) {
     const msg = error.response?.data?.error || "Credenciales incorrectas o error en la API";
     res.render("login", { error: msg });

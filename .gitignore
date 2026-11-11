@@ -1,14 +1,16 @@
+# Secretos
 .env
-frontend-node/node_modules/
-frontend-node/npm-debug.log*
+
+# Dependencias
+node_modules/
 backend-php/src/vendor/
-backend-php/src/.phpunit.result.cache
-.idea/
-.vscode/
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.swp
+
+# Logs y temporales
+*.log
+npm-debug.log*
+
+# Sistema / editor
 .DS_Store
 Thumbs.db
+.vscode/
+.idea/

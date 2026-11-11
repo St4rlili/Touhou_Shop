@@ -1,17 +1,24 @@
 <?php
 require __DIR__ . '/../vendor/autoload.php';
 
-// Función para obtener la conexión a MongoDB Atlas
+// Conexión a MongoDB Atlas. Las credenciales vienen del .env (MONGO_URI)
 function getDB() {
-    $mongoUri = getenv('MONGO_URI') ?: 'mongodb+srv://dbUser:dbUser@cluster0.rrvkkmp.mongodb.net/';
+    static $db = null;
+    if ($db !== null) return $db;
+
+    $mongoUri = getenv('MONGO_URI');
     $dbName = getenv('MONGODB_DB') ?: 'TouhouBD';
+
+    if (!$mongoUri) {
+        jsonError(500, 'Falta la variable MONGO_URI en el .env del backend.');
+    }
 
     try {
         $client = new MongoDB\Client($mongoUri);
-        return $client->selectDatabase($dbName);
+        $db = $client->selectDatabase($dbName);
+        return $db;
     } catch (Exception $e) {
-        header('Content-Type: application/json', true, 500);
-        echo json_encode(['error' => 'Error crítico al conectar a MongoDB: ' . $e->getMessage()]);
-        exit(1);
+        error_log('MongoDB: ' . $e->getMessage());
+        jsonError(500, 'Error crítico al conectar a MongoDB.');
     }
 }
