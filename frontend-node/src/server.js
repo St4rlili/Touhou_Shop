@@ -37,9 +37,15 @@ const wrap = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).cat
 const setFlash = (req, type, msg) => { req.session.flash = { type, msg }; };
 
 // Variables disponibles en todas las vistas
-app.use((req, res, next) => {
+app.use(async (req, res, next) => {
   res.locals.user = req.session.user || null;
   res.locals.cartCount = 0;
+  if (req.session.user?.role === "comprador") {
+    try {
+      const r = await apiPhp(req).get("/cart/summary", { params: { username: req.session.user.username } });
+      res.locals.cartCount = r.data.count;
+    } catch {}
+  }
   res.locals.flash = req.session.flash || null;
   res.locals.money = (n) => new Intl.NumberFormat("es-ES", { style: "currency", currency: "EUR" }).format(n);
   res.locals.fmtDate = (d) =>
@@ -126,6 +132,61 @@ app.get("/shop", requireLogin, wrap(async (req, res) => {
     error = apiError(e, "No se pudo cargar el catálogo.");
   }
   res.render("shop", { products, categories, q, category, error });
+}));
+
+// ---------- Carrito ----------
+const buyer = (req) => req.session.user.username;
+
+app.get("/cart", requireBuyer, wrap(async (req, res) => {
+  let lines = [], total = 0, minutesLeft = null, error = null;
+  try {
+    const r = await apiPhp(req).get("/cart", { params: { username: buyer(req) } });
+    lines = r.data.lines.map((l) => ({ ...l, subtotal: l.product.price * l.quantity }));
+    total = lines.reduce((s, l) => s + l.subtotal, 0);
+    if (r.data.expiresAt) minutesLeft = Math.max(1, Math.ceil((new Date(r.data.expiresAt) - Date.now()) / 60000));
+  } catch (e) {
+    error = apiError(e, "No se pudo cargar el carrito.");
+  }
+  res.render("cart", { lines, total, minutesLeft, error });
+}));
+
+app.post("/cart/add", requireBuyer, wrap(async (req, res) => {
+  const { productId } = req.body;
+  const quantity = Math.min(99, Math.max(1, parseInt(req.body.quantity, 10) || 1));
+  if (!ID_RE.test(productId || "")) {
+    setFlash(req, "error", "Producto no válido.");
+    return res.redirect("/shop");
+  }
+  try {
+    await apiPhp(req).post("/cart/items", { username: buyer(req), productId, quantity });
+    setFlash(req, "success", "Añadido al carrito. Las unidades quedan reservadas para ti.");
+  } catch (e) {
+    setFlash(req, "error", apiError(e, "No se pudo añadir al carrito."));
+  }
+  res.redirect(req.get("referer") || "/shop");
+}));
+
+app.post("/cart/update", requireBuyer, wrap(async (req, res) => {
+  const quantity = Math.max(0, parseInt(req.body.quantity, 10) || 0);
+  if (ID_RE.test(req.body.productId || "")) {
+    try {
+      await apiPhp(req).put(`/cart/items/${req.body.productId}`, { username: buyer(req), quantity });
+    } catch (e) {
+      setFlash(req, "error", apiError(e, "No se pudo actualizar el carrito."));
+    }
+  }
+  res.redirect("/cart");
+}));
+
+app.post("/cart/remove", requireBuyer, wrap(async (req, res) => {
+  if (ID_RE.test(req.body.productId || "")) {
+    try {
+      await apiPhp(req).delete(`/cart/items/${req.body.productId}`, { params: { username: buyer(req) } });
+    } catch (e) {
+      setFlash(req, "error", apiError(e, "No se pudo quitar el producto."));
+    }
+  }
+  res.redirect("/cart");
 }));
 
 // ---------- Administración (provisional) ----------

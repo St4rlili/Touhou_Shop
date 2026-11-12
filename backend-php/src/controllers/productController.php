@@ -44,6 +44,7 @@ function listProducts() {
     }
 
     try {
+        releaseExpiredCartItems();
         $col = productsCollection();
         $products = [];
         foreach ($col->find($filter, ['sort' => ['createdAt' => -1]]) as $doc) {
@@ -102,6 +103,7 @@ function deleteProduct($id) {
     try {
         $oid = toObjectId($id);
         $result = productsCollection()->deleteOne(['_id' => $oid]);
+        getDB()->selectCollection('cart_items')->deleteMany(['productId' => $oid]);
         if ($result->getDeletedCount() === 0) jsonError(404, 'Producto no encontrado.');
         jsonResponse(['ok' => true]);
     } catch (Exception $e) {

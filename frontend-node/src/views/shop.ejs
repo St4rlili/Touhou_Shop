@@ -32,6 +32,13 @@
           <strong class="price"><%= money(p.price) %></strong>
           <span class="stock <%= p.stock === 0 ? 'out' : '' %>"><%= p.stock > 0 ? p.stock + ' disponibles' : 'Agotado' %></span>
         </div>
+        <% if (user && user.role === 'comprador') { %>
+          <form class="add-form" method="post" action="/cart/add">
+            <input type="hidden" name="productId" value="<%= p.id %>">
+            <input type="number" name="quantity" value="1" min="1" max="<%= Math.max(p.stock, 1) %>" aria-label="Cantidad">
+            <button class="btn" type="submit" <%= p.stock === 0 ? 'disabled' : '' %>>Añadir al carrito</button>
+          </form>
+        <% } %>
       </div>
     </article>
   <% }) %>

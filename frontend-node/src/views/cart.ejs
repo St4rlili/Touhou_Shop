@@ -1,0 +1,41 @@
+<%- include('partials/header', { title: 'Carrito' }) %>
+<h1 class="page-title">Tu carrito</h1>
+<% if (error) { %><div class="alert alert-error"><%= error %></div><% } %>
+
+<% if (lines.length === 0) { %>
+  <p class="empty">El carrito está vacío. <a href="/shop">Ver el catálogo</a></p>
+<% } else { %>
+  <p class="note">Estas unidades están reservadas para ti durante unos <%= minutesLeft %> min. Si no envías la solicitud a tiempo, volverán al catálogo.</p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Producto</th><th>Precio</th><th>Cantidad</th><th>Subtotal</th><th></th></tr></thead>
+      <tbody>
+        <% lines.forEach(l => { %>
+          <tr>
+            <td><%= l.product.name %></td>
+            <td><%= money(l.product.price) %></td>
+            <td>
+              <form class="inline" method="post" action="/cart/update">
+                <input type="hidden" name="productId" value="<%= l.product.id %>">
+                <input type="number" name="quantity" value="<%= l.quantity %>" min="0" max="<%= l.quantity + l.product.stock %>" aria-label="Cantidad">
+                <button class="btn btn-small" type="submit">Actualizar</button>
+              </form>
+            </td>
+            <td><%= money(l.subtotal) %></td>
+            <td>
+              <form class="inline" method="post" action="/cart/remove">
+                <input type="hidden" name="productId" value="<%= l.product.id %>">
+                <button class="btn btn-small btn-danger" type="submit">Quitar</button>
+              </form>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="checkout">
+    <p>Total: <strong class="price"><%= money(total) %></strong></p>
+  </div>
+<% } %>
+<%- include('partials/footer') %>

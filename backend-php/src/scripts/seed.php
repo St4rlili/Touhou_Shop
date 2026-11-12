@@ -1,5 +1,5 @@
 <?php
-// Ejecutar seeder: docker compose exec backend php scripts/seed.php
+// docker compose exec backend php scripts/seed.php
 if (php_sapi_name() !== 'cli') { http_response_code(403); exit; }
 
 require __DIR__ . '/../config/helpers.php';
@@ -11,6 +11,9 @@ $db = getDB();
 
 $users = $db->selectCollection('users');
 $users->createIndex(['username' => 1], ['unique' => true]);
+$cartItems = $db->selectCollection('cart_items');
+$cartItems->createIndex(['username' => 1, 'productId' => 1], ['unique' => true]);
+$cartItems->createIndex(['expiresAt' => 1]);
 
 $adminUser = getenv('ADMIN_USER') ?: 'admin';
 $adminPass = getenv('ADMIN_PASSWORD') ?: 'admin1234';
