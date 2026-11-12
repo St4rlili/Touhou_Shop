@@ -1,0 +1,19 @@
+<%- include('partials/header', { title: 'Inicio' }) %>
+<section class="hero">
+  <div class="moon" aria-hidden="true"></div>
+  <h1>Bajo la luna roja, la mansión abre sus puertas</h1>
+  <p>Peluches, figuras y curiosidades de la Mansión Escarlata. Llena tu carrito y las criadas de Sakuya lo prepararán, si la administración lo aprueba.</p>
+  <div class="hero-actions">
+    <% if (!user) { %>
+      <a class="btn" href="/login">Entrar</a>
+      <a class="btn btn-ghost" href="/register">Crear cuenta</a>
+    <% } else if (user.role === 'administrador') { %>
+      <a class="btn" href="/admin">Gestionar inventario</a>
+      <a class="btn btn-ghost" href="/admin/orders">Ver solicitudes</a>
+    <% } else { %>
+      <a class="btn" href="/shop">Ver el catálogo</a>
+      <a class="btn btn-ghost" href="/orders">Mis pedidos</a>
+    <% } %>
+  </div>
+</section>
+<%- include('partials/footer') %>

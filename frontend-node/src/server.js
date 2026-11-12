@@ -8,6 +8,7 @@ const app = express();
 const PORT = process.env.PORT || 80;
 const PHP_API_URL = process.env.PHP_API_URL || "http://backend:8000/api";
 const API_KEY = process.env.API_KEY || "claveapi"; // Debe coincidir con la de PHP
+const ID_RE = /^[a-f0-9]{24}$/;
 
 app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "views"));
@@ -25,24 +26,49 @@ app.use(
   })
 );
 
-// Configuración de Axios
-const apiPhp = axios.create({
-  baseURL: PHP_API_URL,
-  headers: { "x-api-key": API_KEY }
+// Cliente Axios: envía la API key y el rol de la sesión
+const apiPhp = (req) =>
+  axios.create({
+    baseURL: PHP_API_URL,
+    headers: { "x-api-key": API_KEY, "x-user-role": req.session.user?.role || "" }
+  });
+const apiError = (error, fallback) => error.response?.data?.error || fallback;
+const wrap = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
+const setFlash = (req, type, msg) => { req.session.flash = { type, msg }; };
+
+// Variables disponibles en todas las vistas
+app.use((req, res, next) => {
+  res.locals.user = req.session.user || null;
+  res.locals.cartCount = 0;
+  res.locals.flash = req.session.flash || null;
+  res.locals.money = (n) => new Intl.NumberFormat("es-ES", { style: "currency", currency: "EUR" }).format(n);
+  res.locals.fmtDate = (d) =>
+    new Date(d).toLocaleString("es-ES", { dateStyle: "medium", timeStyle: "short", timeZone: "Europe/Madrid" });
+  delete req.session.flash;
+  next();
 });
 
-// Página de Inicio
-app.get("/", (req, res) => {
-  res.redirect(req.session.user ? "/shop" : "/login");
-});
+// Autenticación y autorización
+const requireLogin = (req, res, next) => (req.session.user ? next() : res.redirect("/login"));
+const requireBuyer = (req, res, next) => {
+  if (!req.session.user) return res.redirect("/login");
+  if (req.session.user.role === "administrador") return res.redirect("/admin");
+  next();
+};
+const requireAdmin = (req, res, next) => {
+  if (!req.session.user || req.session.user.role !== "administrador") return res.redirect("/login");
+  next();
+};
 
-// Renderiza el formulario
+// ---------- Inicio ----------
+app.get("/", (req, res) => res.render("index"));
+
+// ---------- Registro ----------
 app.get("/register", (req, res) => {
   if (req.session.user) return res.redirect("/");
   res.render("register", { error: null, success: null });
 });
 
-// Procesa el formulario
 app.post("/register", async (req, res) => {
   const { username, password, password_confirm } = req.body;
 
@@ -51,64 +77,65 @@ app.post("/register", async (req, res) => {
   }
 
   try {
-    const response = await apiPhp.post("/auth/register", { username, password });
+    const response = await apiPhp(req).post("/auth/register", { username, password });
     if (response.data.ok) {
       return res.render("register", { error: null, success: "¡Cuenta creada! Ya puedes iniciar sesión." });
     }
     res.render("register", { error: "No se pudo crear la cuenta", success: null });
   } catch (error) {
-    const msg = error.response?.data?.error || "Error de comunicación con el backend";
-    res.render("register", { error: msg, success: null });
+    res.render("register", { error: apiError(error, "Error de comunicación con el backend"), success: null });
   }
 });
 
-// Renderiza el formulario
+// ---------- Login / logout ----------
 app.get("/login", (req, res) => {
   if (req.session.user) return res.redirect("/");
   res.render("login", { error: null });
 });
 
-// Procesa el formulario
 app.post("/login", async (req, res) => {
   const { username, password } = req.body;
 
   try {
-    const response = await apiPhp.post("/auth/login", { username, password });
-    
-    if (response.data.ok) {
-      // Guarda la sesión de forma nativa en Node
-      req.session.user = {
-        username: response.data.username,
-        role: response.data.role
-      };
+    const response = await apiPhp(req).post("/auth/login", { username, password });
 
-      if (response.data.role === "administrador") {
-        return res.redirect("/admin");
-      }
-      return res.redirect("/shop");
+    if (response.data.ok) {
+      req.session.user = { username: response.data.username, role: response.data.role };
+      return res.redirect(response.data.role === "administrador" ? "/admin" : "/shop");
     }
     res.render("login", { error: "Credenciales incorrectas" });
   } catch (error) {
-    const msg = error.response?.data?.error || "Credenciales incorrectas o error en la API";
-    res.render("login", { error: msg });
+    res.render("login", { error: apiError(error, "Credenciales incorrectas o error en la API") });
   }
 });
 
-// Ruta de cierre de sesión
 app.get("/logout", (req, res) => {
-  req.session.destroy();
-  res.redirect("/login");
+  req.session.destroy(() => res.redirect("/login"));
 });
 
-// Provisional
-app.get("/shop", (req, res) => {
-  if (!req.session.user) return res.redirect("/login");
-  res.send(`<h1>Página de Tienda - Bienvenido ${req.session.user.username}</h1><a href="/logout">Salir</a>`);
+// ---------- Tienda (catálogo) ----------
+app.get("/shop", requireLogin, wrap(async (req, res) => {
+  const q = String(req.query.q || "").trim();
+  const category = String(req.query.category || "");
+  let products = [], categories = [], error = null;
+  try {
+    const r = await apiPhp(req).get("/products", { params: { q, category } });
+    products = r.data.products;
+    categories = r.data.categories;
+  } catch (e) {
+    error = apiError(e, "No se pudo cargar el catálogo.");
+  }
+  res.render("shop", { products, categories, q, category, error });
+}));
+
+// ---------- Administración (provisional) ----------
+app.get("/admin", requireAdmin, (req, res) => {
+  res.send('<h1>Panel de administración</h1><p><a href="/logout">Salir</a></p>');
 });
 
-app.get("/admin", (req, res) => {
-  if (!req.session.user || req.session.user.role !== "administrador") return res.redirect("/login");
-  res.send(`<h1>Panel de Administración - Bienvenido ${req.session.user.username}</h1><a href="/logout">Salir</a>`);
+app.use((err, req, res, next) => {
+  console.error(err);
+  res.status(500).send("Error interno del servidor");
 });
 
 app.listen(PORT, () => console.log(`Frontend de la tienda corriendo en el puerto ${PORT}`));

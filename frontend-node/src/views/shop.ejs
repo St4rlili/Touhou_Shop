@@ -1,0 +1,39 @@
+<%- include('partials/header', { title: 'Catálogo' }) %>
+<h1 class="page-title">Catálogo</h1>
+
+<form class="filters" method="get" action="/shop">
+  <input type="text" name="q" placeholder="Buscar por nombre" value="<%= q %>">
+  <select name="category">
+    <option value="">Todas las categorías</option>
+    <% categories.forEach(c => { %>
+      <option value="<%= c %>" <%= c === category ? 'selected' : '' %>><%= c %></option>
+    <% }) %>
+  </select>
+  <button class="btn" type="submit">Filtrar</button>
+</form>
+
+<% if (error) { %><div class="alert alert-error"><%= error %></div><% } %>
+
+<% if (!error && products.length === 0) { %>
+  <p class="empty">No hay productos que coincidan con la búsqueda.</p>
+<% } %>
+
+<div class="grid">
+  <% products.forEach(p => { %>
+    <article class="card">
+      <div class="thumb">
+        <% if (p.imageUrl) { %><img src="<%= p.imageUrl %>" alt="<%= p.name %>"><% } else { %><span aria-hidden="true">🦇</span><% } %>
+      </div>
+      <div class="card-body">
+        <span class="pill"><%= p.category %></span>
+        <h3><%= p.name %></h3>
+        <p class="desc"><%= p.description %></p>
+        <div class="price-row">
+          <strong class="price"><%= money(p.price) %></strong>
+          <span class="stock <%= p.stock === 0 ? 'out' : '' %>"><%= p.stock > 0 ? p.stock + ' disponibles' : 'Agotado' %></span>
+        </div>
+      </div>
+    </article>
+  <% }) %>
+</div>
+<%- include('partials/footer') %>

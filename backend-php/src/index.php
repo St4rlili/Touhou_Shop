@@ -7,6 +7,7 @@ require_once 'config/helpers.php';
 require_once 'config/db.php';
 require_once 'middlewares/authMiddleware.php';
 require_once 'controllers/authController.php';
+require_once 'controllers/productController.php';
 
 header('Content-Type: application/json; charset=utf-8');
 
@@ -21,6 +22,11 @@ $id = '([a-f0-9]{24})';
 $routes = [
     ['POST',   '#^/auth/register$#',    'registerUser'],
     ['POST',   '#^/auth/login$#',       'loginUser'],
+    ['GET',    '#^/products$#',         'listProducts'],
+    ['GET',    "#^/products/$id$#",     'getProduct'],
+    ['POST',   '#^/products$#',         'createProduct'],
+    ['PUT',    "#^/products/$id$#",     'updateProduct'],
+    ['DELETE', "#^/products/$id$#",     'deleteProduct'],
 ];
 
 foreach ($routes as [$m, $pattern, $handler]) {
