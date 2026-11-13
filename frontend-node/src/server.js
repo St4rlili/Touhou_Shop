@@ -66,6 +66,24 @@ const requireAdmin = (req, res, next) => {
   next();
 };
 
+// Para añadir al carrito hace falta sesión: si no la hay, se manda al login
+const backPath = (req, fallback = "/shop") => {
+  try {
+    const u = new URL(req.get("referer") || "");
+    if (u.host === req.get("host") && !u.pathname.startsWith("//")) return u.pathname + u.search;
+  } catch {}
+  return fallback;
+};
+const requireBuyerToAdd = (req, res, next) => {
+  if (!req.session.user) {
+    req.session.returnTo = backPath(req);
+    setFlash(req, "info", "Inicia sesión para añadir productos al carrito.");
+    return res.redirect("/login");
+  }
+  if (req.session.user.role === "administrador") return res.redirect("/admin");
+  next();
+};
+
 // ---------- Inicio ----------
 app.get("/", (req, res) => res.render("index"));
 
@@ -96,7 +114,7 @@ app.post("/register", async (req, res) => {
 // ---------- Login / logout ----------
 app.get("/login", (req, res) => {
   if (req.session.user) return res.redirect("/");
-  res.render("login", { error: null });
+  res.render("login", { error: null, info: res.locals.flash ? res.locals.flash.msg : null });
 });
 
 app.post("/login", async (req, res) => {
@@ -107,7 +125,10 @@ app.post("/login", async (req, res) => {
 
     if (response.data.ok) {
       req.session.user = { username: response.data.username, role: response.data.role };
-      return res.redirect(response.data.role === "administrador" ? "/admin" : "/shop");
+      const back = req.session.returnTo;
+      delete req.session.returnTo;
+      if (response.data.role === "administrador") return res.redirect("/admin");
+      return res.redirect(back || "/shop");
     }
     res.render("login", { error: "Credenciales incorrectas" });
   } catch (error) {
@@ -120,7 +141,7 @@ app.get("/logout", (req, res) => {
 });
 
 // ---------- Tienda (catálogo) ----------
-app.get("/shop", requireLogin, wrap(async (req, res) => {
+app.get("/shop", wrap(async (req, res) => {
   const q = String(req.query.q || "").trim();
   const category = String(req.query.category || "");
   let products = [], categories = [], error = null;
@@ -150,7 +171,7 @@ app.get("/cart", requireBuyer, wrap(async (req, res) => {
   res.render("cart", { lines, total, minutesLeft, error });
 }));
 
-app.post("/cart/add", requireBuyer, wrap(async (req, res) => {
+app.post("/cart/add", requireBuyerToAdd, wrap(async (req, res) => {
   const { productId } = req.body;
   const quantity = Math.min(99, Math.max(1, parseInt(req.body.quantity, 10) || 1));
   if (!ID_RE.test(productId || "")) {
@@ -233,7 +254,7 @@ const productPayload = (b) => ({
   imageUrl: b.imageUrl
 });
 
-// Inventario (listado + formulario para añadir, eliminar o editar productos)
+// Inventario (listado + formulario de alta / edición)
 app.get("/admin", wrap(async (req, res) => {
   let products = [], error = null;
   try {

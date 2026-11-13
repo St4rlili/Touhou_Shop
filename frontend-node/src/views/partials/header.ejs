@@ -20,6 +20,8 @@
       <a href="/shop">Tienda</a>
       <a href="/cart">Carrito<% if (cartCount > 0) { %> <span class="badge"><%= cartCount %></span><% } %></a>
       <a href="/orders">Mis pedidos</a>
+    <% } else { %>
+      <a href="/shop">Tienda</a>
     <% } %>
   </nav>
   <div class="session">

@@ -5,7 +5,8 @@
   <p>Peluches, figuras y curiosidades de la Mansión Escarlata. Llena tu carrito y las criadas de Sakuya lo prepararán, si la administración lo aprueba.</p>
   <div class="hero-actions">
     <% if (!user) { %>
-      <a class="btn" href="/login">Entrar</a>
+      <a class="btn" href="/shop">Ver la tienda</a>
+      <a class="btn btn-ghost" href="/login">Entrar</a>
       <a class="btn btn-ghost" href="/register">Crear cuenta</a>
     <% } else if (user.role === 'administrador') { %>
       <a class="btn" href="/admin">Gestionar inventario</a>
