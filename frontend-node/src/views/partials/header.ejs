@@ -15,6 +15,7 @@
   <nav>
     <% if (user && user.role === 'administrador') { %>
       <a href="/admin">Inventario</a>
+      <a href="/admin/orders">Solicitudes<% if (typeof pendingCount !== 'undefined' && pendingCount > 0) { %> <span class="badge"><%= pendingCount %></span><% } %></a>
     <% } else if (user) { %>
       <a href="/shop">Tienda</a>
       <a href="/cart">Carrito<% if (cartCount > 0) { %> <span class="badge"><%= cartCount %></span><% } %></a>

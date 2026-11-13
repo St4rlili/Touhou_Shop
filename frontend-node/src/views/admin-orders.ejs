@@ -1,0 +1,27 @@
+<%- include('partials/header', { title: 'Solicitudes' }) %>
+<h1 class="page-title">Solicitudes de compra</h1>
+<% if (error) { %><div class="alert alert-error"><%= error %></div><% } %>
+
+<% if (!error && orders.length === 0) { %><p class="empty">Todavía no hay solicitudes.</p><% } %>
+
+<% orders.forEach(o => { %>
+  <section class="order">
+    <div class="order-head">
+      <span><strong><%= o.username %></strong> · <%= fmtDate(o.createdAt) %></span>
+      <span class="status status-<%= o.status %>"><%= o.status %></span>
+    </div>
+    <ul class="order-items">
+      <% o.items.forEach(i => { %>
+        <li><span><%= i.quantity %> × <%= i.name %></span><span><%= money(i.subtotal) %></span></li>
+      <% }) %>
+    </ul>
+    <div class="order-total">Total: <strong><%= money(o.total) %></strong></div>
+    <% if (o.status === 'pendiente') { %>
+      <div class="order-actions">
+        <form class="inline" method="post" action="/admin/orders/<%= o.id %>/accept"><button class="btn btn-small" type="submit">Aceptar</button></form>
+        <form class="inline" method="post" action="/admin/orders/<%= o.id %>/reject"><button class="btn btn-small btn-danger" type="submit">Rechazar</button></form>
+      </div>
+    <% } %>
+  </section>
+<% }) %>
+<%- include('partials/footer') %>

@@ -1,0 +1,55 @@
+<%- include('partials/header', { title: 'Inventario' }) %>
+<h1 class="page-title">Inventario</h1>
+<% if (error) { %><div class="alert alert-error"><%= error %></div><% } %>
+
+<div class="admin-layout">
+  <section class="panel">
+    <h2><%= editing ? 'Modificar producto' : 'Añadir producto' %></h2>
+    <form class="stack" method="post" action="<%= editing ? '/admin/products/' + editing.id : '/admin/products' %>">
+      <div class="form-group"><label for="name">Nombre</label>
+        <input id="name" name="name" required value="<%= editing ? editing.name : '' %>"></div>
+      <div class="form-group"><label for="description">Descripción</label>
+        <textarea id="description" name="description" rows="3"><%= editing ? editing.description : '' %></textarea></div>
+      <div class="two-cols">
+        <div class="form-group"><label for="price">Precio (€)</label>
+          <input id="price" name="price" inputmode="decimal" required value="<%= editing ? editing.price : '' %>"></div>
+        <div class="form-group"><label for="stock">Stock</label>
+          <input id="stock" name="stock" type="number" min="0" required value="<%= editing ? editing.stock : '' %>"></div>
+      </div>
+      <div class="form-group"><label for="category">Categoría</label>
+        <input id="category" name="category" placeholder="Peluches, Figuras…" value="<%= editing ? editing.category : '' %>"></div>
+      <div class="form-group"><label for="imageUrl">URL de la imagen (opcional)</label>
+        <input id="imageUrl" name="imageUrl" value="<%= editing ? editing.imageUrl : '' %>"></div>
+      <button class="btn" type="submit"><%= editing ? 'Guardar cambios' : 'Añadir producto' %></button>
+      <% if (editing) { %><a class="btn btn-ghost" href="/admin">Cancelar</a><% } %>
+    </form>
+  </section>
+
+  <section>
+    <% if (products.length === 0) { %><p class="empty">No hay productos. Añade el primero con el formulario.</p><% } else { %>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Producto</th><th>Categoría</th><th>Precio</th><th>Stock</th><th></th></tr></thead>
+        <tbody>
+          <% products.forEach(p => { %>
+            <tr>
+              <td><%= p.name %></td>
+              <td><%= p.category %></td>
+              <td><%= money(p.price) %></td>
+              <td class="<%= p.stock === 0 ? 'warn' : '' %>"><%= p.stock %></td>
+              <td class="actions">
+                <a class="btn btn-small" href="/admin?edit=<%= p.id %>">Modificar</a>
+                <form class="inline" method="post" action="/admin/products/<%= p.id %>/delete"
+                      onsubmit="return confirm('¿Eliminar «<%= p.name.replace(/'/g, '’') %>»?');">
+                  <button class="btn btn-small btn-danger" type="submit">Eliminar</button>
+                </form>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+    <% } %>
+  </section>
+</div>
+<%- include('partials/footer') %>

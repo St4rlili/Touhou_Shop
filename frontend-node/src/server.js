@@ -213,10 +213,92 @@ app.get("/orders", requireBuyer, wrap(async (req, res) => {
   res.render("orders", { orders, error });
 }));
 
-// ---------- Administración (provisional) ----------
-app.get("/admin", requireAdmin, (req, res) => {
-  res.send('<h1>Panel de administración</h1><p><a href="/logout">Salir</a></p>');
+// ---------- Administración ----------
+app.use("/admin", requireAdmin, async (req, res, next) => {
+  try {
+    const r = await apiPhp(req).get("/orders", { params: { status: "pendiente" } });
+    res.locals.pendingCount = r.data.orders.length;
+  } catch {
+    res.locals.pendingCount = 0;
+  }
+  next();
 });
+
+const productPayload = (b) => ({
+  name: b.name,
+  description: b.description,
+  price: String(b.price || "").replace(",", "."),
+  stock: b.stock,
+  category: b.category,
+  imageUrl: b.imageUrl
+});
+
+// Inventario (listado + formulario para añadir, eliminar o editar productos)
+app.get("/admin", wrap(async (req, res) => {
+  let products = [], error = null;
+  try {
+    products = (await apiPhp(req).get("/products")).data.products;
+  } catch (e) {
+    error = apiError(e, "No se pudo cargar el inventario.");
+  }
+  const editing = req.query.edit ? products.find((p) => p.id === req.query.edit) || null : null;
+  res.render("admin-products", { products, editing, error });
+}));
+
+app.post("/admin/products", wrap(async (req, res) => {
+  try {
+    await apiPhp(req).post("/products", productPayload(req.body));
+    setFlash(req, "success", "Producto añadido al inventario.");
+  } catch (e) {
+    setFlash(req, "error", apiError(e, "No se pudo crear el producto."));
+  }
+  res.redirect("/admin");
+}));
+
+app.post("/admin/products/:id", wrap(async (req, res) => {
+  if (!ID_RE.test(req.params.id)) return res.redirect("/admin");
+  try {
+    await apiPhp(req).put(`/products/${req.params.id}`, productPayload(req.body));
+    setFlash(req, "success", "Producto actualizado.");
+  } catch (e) {
+    setFlash(req, "error", apiError(e, "No se pudo modificar el producto."));
+  }
+  res.redirect("/admin");
+}));
+
+app.post("/admin/products/:id/delete", wrap(async (req, res) => {
+  if (!ID_RE.test(req.params.id)) return res.redirect("/admin");
+  try {
+    await apiPhp(req).delete(`/products/${req.params.id}`);
+    setFlash(req, "success", "Producto eliminado.");
+  } catch (e) {
+    setFlash(req, "error", apiError(e, "No se pudo eliminar el producto."));
+  }
+  res.redirect("/admin");
+}));
+
+// Solicitudes de compra
+app.get("/admin/orders", wrap(async (req, res) => {
+  let orders = [], error = null;
+  try {
+    orders = (await apiPhp(req).get("/orders")).data.orders;
+  } catch (e) {
+    error = apiError(e, "No se pudieron cargar los pedidos.");
+  }
+  res.render("admin-orders", { orders, error });
+}));
+
+app.post("/admin/orders/:id/:action", wrap(async (req, res) => {
+  const status = { accept: "aceptada", reject: "rechazada" }[req.params.action];
+  if (!ID_RE.test(req.params.id) || !status) return res.redirect("/admin/orders");
+  try {
+    await apiPhp(req).patch(`/orders/${req.params.id}`, { status });
+    setFlash(req, "success", `Pedido ${status}.`);
+  } catch (e) {
+    setFlash(req, "error", apiError(e, "No se pudo actualizar el pedido."));
+  }
+  res.redirect("/admin/orders");
+}));
 
 app.use((err, req, res, next) => {
   console.error(err);
