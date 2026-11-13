@@ -1,0 +1,23 @@
+<%- include('partials/header', { title: 'Mis pedidos' }) %>
+<h1 class="page-title">Mis pedidos</h1>
+<% if (error) { %><div class="alert alert-error"><%= error %></div><% } %>
+
+<% if (!error && orders.length === 0) { %>
+  <p class="empty">Aún no has hecho ningún pedido. <a href="/shop">Ver el catálogo</a></p>
+<% } %>
+
+<% orders.forEach(o => { %>
+  <section class="order">
+    <div class="order-head">
+      <span><%= fmtDate(o.createdAt) %></span>
+      <span class="status status-<%= o.status %>"><%= o.status %></span>
+    </div>
+    <ul class="order-items">
+      <% o.items.forEach(i => { %>
+        <li><span><%= i.quantity %> × <%= i.name %></span><span><%= money(i.subtotal) %></span></li>
+      <% }) %>
+    </ul>
+    <div class="order-total">Total: <strong><%= money(o.total) %></strong></div>
+  </section>
+<% }) %>
+<%- include('partials/footer') %>

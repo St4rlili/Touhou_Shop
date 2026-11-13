@@ -9,6 +9,7 @@ require_once 'middlewares/authMiddleware.php';
 require_once 'controllers/authController.php';
 require_once 'controllers/productController.php';
 require_once 'controllers/cartController.php';
+require_once 'controllers/orderController.php';
 
 header('Content-Type: application/json; charset=utf-8');
 
@@ -33,6 +34,9 @@ $routes = [
     ['POST',   '#^/cart/items$#',       'addCartItem'],
     ['PUT',    "#^/cart/items/$id$#",   'setCartItem'],
     ['DELETE', "#^/cart/items/$id$#",   'removeCartItem'],
+    ['POST',   '#^/orders$#',           'createOrder'],
+    ['GET',    '#^/orders$#',           'listOrders'],
+    ['PATCH',  "#^/orders/$id$#",       'updateOrderStatus'],
 ];
 
 foreach ($routes as [$m, $pattern, $handler]) {

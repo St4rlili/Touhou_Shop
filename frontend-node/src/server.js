@@ -26,7 +26,7 @@ app.use(
   })
 );
 
-// Cliente Axios: envía la API key y el rol de la sesión
+// Cliente Axios: envía la API key y el rol de la sesión (PHP lo usa para las rutas de admin)
 const apiPhp = (req) =>
   axios.create({
     baseURL: PHP_API_URL,
@@ -54,7 +54,7 @@ app.use(async (req, res, next) => {
   next();
 });
 
-// Autenticación y autorización
+// Guardas de acceso
 const requireLogin = (req, res, next) => (req.session.user ? next() : res.redirect("/login"));
 const requireBuyer = (req, res, next) => {
   if (!req.session.user) return res.redirect("/login");
@@ -134,7 +134,7 @@ app.get("/shop", requireLogin, wrap(async (req, res) => {
   res.render("shop", { products, categories, q, category, error });
 }));
 
-// ---------- Carrito ----------
+// ---------- Carrito (vive en MongoDB; añadir reserva stock, ver CART_TTL_MINUTES en el backend) ----------
 const buyer = (req) => req.session.user.username;
 
 app.get("/cart", requireBuyer, wrap(async (req, res) => {
@@ -187,6 +187,30 @@ app.post("/cart/remove", requireBuyer, wrap(async (req, res) => {
     }
   }
   res.redirect("/cart");
+}));
+
+// Enviar el carrito completo como solicitud de compra (el admin decide)
+app.post("/cart/checkout", requireBuyer, wrap(async (req, res) => {
+  try {
+    await apiPhp(req).post("/orders", { username: buyer(req) });
+    setFlash(req, "success", "Solicitud enviada. Un administrador la revisará pronto.");
+    res.redirect("/orders");
+  } catch (e) {
+    setFlash(req, "error", apiError(e, "No se pudo enviar la solicitud de compra."));
+    res.redirect("/cart");
+  }
+}));
+
+// ---------- Mis pedidos ----------
+app.get("/orders", requireBuyer, wrap(async (req, res) => {
+  let orders = [], error = null;
+  try {
+    const r = await apiPhp(req).get("/orders", { params: { username: req.session.user.username } });
+    orders = r.data.orders;
+  } catch (e) {
+    error = apiError(e, "No se pudieron cargar tus pedidos.");
+  }
+  res.render("orders", { orders, error });
 }));
 
 // ---------- Administración (provisional) ----------

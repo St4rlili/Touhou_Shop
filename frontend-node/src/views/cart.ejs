@@ -36,6 +36,10 @@
 
   <div class="checkout">
     <p>Total: <strong class="price"><%= money(total) %></strong></p>
+    <p class="note">Al comprar se envía una solicitud con todo el carrito. El pedido queda pendiente hasta que un administrador lo acepte o lo rechace; si lo rechaza, el stock vuelve al catálogo.</p>
+    <form method="post" action="/cart/checkout">
+      <button class="btn" type="submit">Solicitar compra</button>
+    </form>
   </div>
 <% } %>
 <%- include('partials/footer') %>
