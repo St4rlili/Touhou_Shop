@@ -61,7 +61,6 @@ function loginUser() {
         if (!empty(password_get_info($stored)['algo'])) {
             $valid = password_verify($password, $stored);
         } else {
-            // Hasheo
             $valid = hash_equals($stored, $password);
             if ($valid) {
                 $collection->updateOne(
@@ -75,7 +74,12 @@ function loginUser() {
             jsonError(401, 'Credenciales incorrectas.');
         }
 
-        jsonResponse(['ok' => true, 'username' => $user['username'], 'role' => $user['role']]);
+        jsonResponse([
+            'ok' => true,
+            'username' => $user['username'],
+            'role' => $user['role'],
+            'avatar' => (string)($user['avatar'] ?? '')
+        ]);
     } catch (Exception $e) {
         error_log('login: ' . $e->getMessage());
         jsonError(500, 'Error interno en el login.');

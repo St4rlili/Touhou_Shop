@@ -20,17 +20,20 @@
       <a href="/shop">Tienda</a>
       <a href="/cart">Carrito<% if (cartCount > 0) { %> <span class="badge"><%= cartCount %></span><% } %></a>
       <a href="/orders">Mis pedidos</a>
+      <a href="/contact">Contacto</a>
     <% } else { %>
       <a href="/shop">Tienda</a>
+      <a href="/contact">Contacto</a>
     <% } %>
   </nav>
   <div class="session">
     <% if (user) { %>
+      <img class="avatar" src="<%= user.avatar || '/img/default-avatar.svg' %>" alt="Foto de perfil de <%= user.username %>">
       <span class="who"><%= user.username %></span>
-      <a href="/logout">Salir</a>
+      <a class="btn btn-ghost btn-small" href="/logout">Salir</a>
     <% } else { %>
-      <a href="/login">Entrar</a>
-      <a href="/register">Registrarse</a>
+      <a class="btn btn-small" href="/login">Entrar</a>
+      <a class="btn btn-ghost btn-small" href="/register">Registrarse</a>
     <% } %>
   </div>
 </header>

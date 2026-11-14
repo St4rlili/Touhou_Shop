@@ -124,7 +124,7 @@ app.post("/login", async (req, res) => {
     const response = await apiPhp(req).post("/auth/login", { username, password });
 
     if (response.data.ok) {
-      req.session.user = { username: response.data.username, role: response.data.role };
+      req.session.user = { username: response.data.username, role: response.data.role, avatar: response.data.avatar || "" };
       const back = req.session.returnTo;
       delete req.session.returnTo;
       if (response.data.role === "administrador") return res.redirect("/admin");
@@ -138,6 +138,37 @@ app.post("/login", async (req, res) => {
 
 app.get("/logout", (req, res) => {
   req.session.destroy(() => res.redirect("/login"));
+});
+
+// ---------- Contacto ----------
+const validateContact = ({ name, email, message }) => {
+  if (name.length < 2 || name.length > 60) return "El nombre debe tener entre 2 y 60 caracteres.";
+  if (email.length > 120 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return "Introduce un correo electrónico válido.";
+  if (message.length < 10 || message.length > 1000) return "El mensaje debe tener entre 10 y 1000 caracteres.";
+  return null;
+};
+
+app.get("/contact", (req, res) => {
+  res.render("contact", { error: null, form: { name: req.session.user?.username || "", email: "", message: "" } });
+});
+
+app.post("/contact", (req, res) => {
+  const form = {
+    name: String(req.body.name || "").trim(),
+    email: String(req.body.email || "").trim(),
+    message: String(req.body.message || "").trim()
+  };
+  const error = validateContact(form);
+  if (error) return res.render("contact", { error, form });
+  req.session.contactName = form.name;
+  res.redirect("/contact/thanks");
+});
+
+app.get("/contact/thanks", (req, res) => {
+  const name = req.session.contactName;
+  if (!name) return res.redirect("/contact");
+  delete req.session.contactName;
+  res.render("contact-thanks", { name });
 });
 
 // ---------- Tienda (catálogo) ----------

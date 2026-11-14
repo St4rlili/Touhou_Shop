@@ -1,0 +1,19 @@
+<%- include('partials/header', { title: 'Contacto' }) %>
+<div class="page-narrow">
+  <h1 class="page-title">Contacto</h1>
+  <p class="note">¿Tienes dudas sobre un producto o un pedido? Escríbenos y la mansión te responderá.</p>
+  <% if (error) { %><div class="alert alert-error"><%= error %></div><% } %>
+
+  <section class="panel">
+    <form class="stack" method="post" action="/contact">
+      <div class="form-group"><label for="name">Nombre o usuario</label>
+        <input id="name" name="name" required minlength="2" maxlength="60" value="<%= form.name %>"></div>
+      <div class="form-group"><label for="email">Correo electrónico</label>
+        <input id="email" name="email" type="email" required maxlength="120" value="<%= form.email %>"></div>
+      <div class="form-group"><label for="message">Mensaje</label>
+        <textarea id="message" name="message" rows="6" required minlength="10" maxlength="1000"><%= form.message %></textarea></div>
+      <button class="btn" type="submit">Enviar mensaje</button>
+    </form>
+  </section>
+</div>
+<%- include('partials/footer') %>

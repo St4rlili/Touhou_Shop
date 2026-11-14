@@ -49,6 +49,8 @@ a {
 
 /* Cabecera */
 .site-header {
+    position: relative;
+    z-index: 10;
     display: flex;
     flex-wrap: wrap;
     align-items: center;
@@ -77,12 +79,12 @@ a {
     flex: 1;
 }
 
-.site-header a:not(.brand) {
+.site-header a:not(.brand):not(.btn) {
     text-decoration: none;
     color: var(--bone);
 }
 
-.site-header a:not(.brand):hover {
+.site-header a:not(.brand):not(.btn):hover {
     color: var(--gold);
 }
 
@@ -94,6 +96,14 @@ a {
 
 .who {
     color: var(--muted);
+}
+
+.avatar {
+    width: 2.125rem;
+    height: 2.125rem;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 0.0625rem solid var(--gold);
 }
 
 .badge {
@@ -133,15 +143,15 @@ a {
 /* Portada: la luna roja */
 .hero {
     position: relative;
+    margin-top: -1.75rem;
     text-align: center;
     padding: 5.625rem 1rem 4.375rem;
-    overflow: hidden;
 }
 
 .moon {
     position: absolute;
     z-index: 0;
-    top: -3.75rem;
+    top: 1.75rem;
     left: 50%;
     transform: translateX(-50%);
     width: clamp(16.25rem, 35vw, 22.5rem);
@@ -160,7 +170,7 @@ a {
 .hero h1 {
     font-size: clamp(2.125rem, 6vw, 3.75rem);
     max-width: 47.5rem;
-    margin: 7.5rem auto 1.125rem;
+    margin: 13rem auto 1.125rem;
     text-shadow: 0 0.125rem 0.875rem #000;
 }
 
@@ -558,6 +568,26 @@ td.actions {
     margin-right: 0.5rem;
 }
 
+/* Páginas centradas y estrechas */
+.page-narrow {
+    max-width: 35rem;
+    margin: 0 auto;
+}
+
+/* Contacto */
+.thanks-panel {
+    text-align: center;
+}
+
+.thanks-actions {
+    display: flex;
+    gap: 0.75rem;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-top: 1.25rem;
+}
+
+/* Notas informativas */
 .note {
     color: var(--muted);
     font-size: 0.875rem;
@@ -570,7 +600,7 @@ td.actions {
     }
 
     .hero h1 {
-        margin-top: 5.625rem;
+        margin-top: 11.125rem;
     }
 
     .two-cols {
